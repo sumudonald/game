@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roda Studi Kasus Informatika</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            padding: 2vh 4vw;
+            box-sizing: border-box;
+        }
+
+        .content-area {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            align-items: center;
+            justify-content: space-around;
+            gap: 2rem;
+            margin-top: 2vh;
+        }
+
+        .wheel-container {
+            position: relative;
+            height: 70vh; 
+            width: 70vh;
+            max-width: 600px;
+            max-height: 600px;
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
+        }
+
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 8px solid white;
+            transition: transform 4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform-origin: center;
+        }
+
+        .pointer {
+            position: absolute;
+            top: 50%;
+            right: -25px;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 25px solid transparent;
+            border-bottom: 25px solid transparent;
+            border-right: 45px solid #ef4444;
+            filter: drop-shadow(-3px 3px 3px rgba(0,0,0,0.5));
+            z-index: 10;
+        }
+
+        .info-panel {
+            flex: 1;
+            max-width: 500px;
+            height: 70vh;
+            max-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .fullscreen-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .fullscreen-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        #result-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: white;
+            color: #1e293b;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 550px;
+            width: 95%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes modalPopIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .content-area {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+            .wheel-container {
+                width: 80vw;
+                height: 80vw;
+                margin-bottom: 20px;
+            }
+            .info-panel {
+                height: auto;
+                width: 100%;
+            }
+            body {
+                overflow-y: auto;
+            }
+        }
+        .disabled-btn {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <button id="fullscreen-btn" class="fullscreen-btn" title="Layar Penuh">
+        <i class="fas fa-expand"></i> <span class="hidden sm:inline">Layar Penuh</span>
+    </button>
+
+    <div class="main-container" id="main-container">
+        <header class="text-center">
+            <h1 class="text-3xl md:text-5xl font-bold mb-2 text-yellow-300 drop-shadow-lg">Tantangan Informatika</h1>
+            <p class="text-sm md:text-lg text-blue-100 max-w-3xl mx-auto">
+                Putar roda untuk mendapatkan studi kasus. Diskusikan dengan kelompokmu dan selesaikan menggunakan 4 Pilar Berpikir Komputasional!
+            </p>
+        </header>
+
+        <div class="content-area">
+            <div class="wheel-container">
+                <div class="pointer"></div>
+                <canvas id="wheel" width="800" height="800"></canvas>
+                
+                <button id="spin-btn" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white text-blue-800 font-bold w-20 h-20 md:w-28 md:h-28 rounded-full shadow-2xl hover:scale-105 hover:bg-gray-100 active:scale-95 transition-all z-20 flex flex-col items-center justify-center border-4 border-gray-200 cursor-pointer">
+                    <span class="text-lg md:text-2xl" id="spin-text">PUTAR</span>
+                </button>
+            </div>
+
+            <div class="info-panel bg-white/10 p-6 rounded-2xl backdrop-blur-sm border border-white/20 shadow-xl overflow-hidden flex flex-col">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-300 border-b border-white/30 pb-2 flex-shrink-0">Daftar Kasus <span id="case-counter" class="text-sm font-normal text-white ml-2">(8 tersisa)</span></h2>
+                <div class="overflow-y-auto flex-grow pr-2 scrollbar-thin">
+                    <ul id="case-list" class="space-y-3 text-sm md:text-base font-medium">
+                        <!-- List akan diisi oleh JavaScript -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Hasil & Cara Pengerjaan -->
+    <div id="result-modal">
+        <div class="modal-content relative text-center">
+            <button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">&times;</button>
+            
+            <div class="inline-flex items-center justify-center w-14 h-14 bg-blue-100 text-blue-600 rounded-full mb-3 shadow-inner">
+                <i class="fas fa-trophy text-2xl"></i>
+            </div>
+            
+            <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-1">Kasus Terpilih!</h3>
+            <p class="text-gray-500 text-xs md:text-sm mb-4">Diskusikan tantangan ini bersama kelompokmu:</p>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-5 text-left rounded-r-xl shadow-sm">
+                <h4 id="result-title" class="text-lg md:text-xl font-bold text-blue-800 mb-1">Judul Kasus</h4>
+                <p id="result-desc" class="text-gray-700 text-xs md:text-sm leading-relaxed">Deskripsi kasus akan muncul di sini.</p>
+            </div>
+
+            <div class="text-left mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200/80 shadow-inner">
+                <h5 class="font-bold text-gray-800 text-xs md:text-sm mb-3 flex items-center gap-2 border-b border-gray-200 pb-2">
+                    <i class="fas fa-brain text-yellow-500 text-base"></i>
+                    <span>Panduan Pengerjaan (4 Pilar Berpikir Komputasional):</span>
+                </h5>
+                <ul class="text-xs md:text-sm text-gray-600 space-y-2.5">
+                    <li class="flex items-start gap-2">
+                        <span class="font-bold text-red-500 min-w-[110px] flex-shrink-0">1. Dekomposisi:</span>
+                        <span>Pecah masalah besar menjadi bagian-bagian kecil yang lebih sederhana.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="font-bold text-amber-600 min-w-[110px] flex-shrink-0">2. Pengenalan Pola:</span>
+                        <span>Cari kesamaan, tren, atau pengalaman dari kasus sejenis sebelumnya.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="font-bold text-emerald-600 min-w-[110px] flex-shrink-0">3. Abstraksi:</span>
+                        <span>Abaikan detail yang tidak penting, fokus hanya pada hal-hal utama.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="font-bold text-blue-600 min-w-[110px] flex-shrink-0">4. Algoritma:</span>
+                        <span>Susun langkah-langkah atau instruksi logis untuk menyelesaikan masalah.</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <button id="btn-next" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transform active:scale-95">
+                <i class="fas fa-rocket"></i> Lanjut ke Berikutnya!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Mengubah dari const ke let agar bisa dimodifikasi
+        let cases = [
+            { id: 1, title: "Pemilihan Ketua OSIS", color: "#EF4444", desc: "Rancang sistem pemilihan Ketua OSIS yang adil, efisien, dan transparan untuk seluruh siswa di sekolah, mulai dari pendaftaran hingga perhitungan suara." },
+            { id: 2, title: "Lomba Lingkungan Kelas", color: "#F97316", desc: "Buat strategi untuk memenangkan lomba kebersihan dan keindahan kelas. Tentukan jadwal, pembagian tugas, dan tema dekorasi." },
+            { id: 3, title: "Panitia 17 Agustus", color: "#EAB308", desc: "Rencanakan acara perlombaan 17 Agustus di sekolah. Tentukan jenis lomba, aturan, kebutuhan alat, dan susunan acaranya." },
+            { id: 4, title: "Pembuatan Mading Kelas", color: "#22C55E", desc: "Buat konsep mading kelas bulanan yang menarik. Tentukan rubrik (berita, puisi, dll), jadwal pengerjaan, dan pembagian tugas redaksi." },
+            { id: 5, title: "Jadwal Piket Kebersihan", color: "#06B6D4", desc: "Susun jadwal piket kelas yang adil untuk 35 siswa selama 5 hari sekolah, memastikan tidak ada yang bentrok dengan kegiatan ekskul wajib mereka." },
+            { id: 6, title: "Lomba Pentas Seni", color: "#3B82F6", desc: "Siapkan penampilan perwakilan kelas untuk pentas seni sekolah. Mulai dari pemilihan konsep, latihan, hingga kebutuhan properti." },
+            { id: 7, title: "Penataan Buku Perpustakaan", color: "#8B5CF6", desc: "Bantu pustakawan merapikan ribuan buku baru yang masuk agar mudah dicari oleh siswa berdasarkan kategori dan abjad." },
+            { id: 8, title: "Tugas Proyek Kelompok", color: "#EC4899", desc: "Kelola pengerjaan tugas proyek akhir semester yang memiliki batas waktu 2 minggu agar selesai tepat waktu dengan hasil maksimal." }
+        ];
+
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const caseListEl = document.getElementById('case-list');
+        const caseCounter = document.getElementById('case-counter');
+        const spinBtn = document.getElementById('spin-btn');
+        const spinText = document.getElementById('spin-text');
+        
+        let currentRotation = 0; 
+        let isSpinning = false;
+        let lastWinningIndex = -1; // Menyimpan index pemenang untuk dihapus
+        
+        let audioCtx;
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playTickSound() {
+            try {
+                const ctx = getAudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(850, ctx.currentTime);
+                
+                gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.04);
+            } catch (e) {
+                console.warn('Audio playback prevented or unsupported:', e);
+            }
+        }
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = canvas.width / 2;
+
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            let numSegments = cases.length;
+            
+            if (numSegments === 0) {
+                // Gambar roda kosong jika kasus habis
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = "#9ca3af"; // Abu-abu
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+                
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 32px Poppins, sans-serif';
+                ctx.fillText("Selesai!", centerX, centerY);
+                return;
+            }
+
+            let segmentAngle = 360 / numSegments;
+
+            for (let i = 0; i < numSegments; i++) {
+                const startAngle = (i * segmentAngle) * Math.PI / 180;
+                const endAngle = ((i + 1) * segmentAngle) * Math.PI / 180;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                
+                ctx.fillStyle = cases[i].color;
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+                
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(startAngle + (segmentAngle / 2) * Math.PI / 180);
+                
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#ffffff';
+                
+                // Menyesuaikan ukuran font jika segmen terlalu sedikit (agar teks tidak terlalu besar)
+                let fontSize = numSegments <= 3 ? 32 : 24;
+                ctx.font = `bold ${fontSize}px Poppins, sans-serif`;
+                
+                let maxTextLen = numSegments <= 4 ? 20 : 15;
+                ctx.fillText(cases[i].title.substring(0, maxTextLen) + (cases[i].title.length > maxTextLen ? '...' : ''), radius - 30, 8);
+                
+                let subFontSize = numSegments <= 3 ? 20 : 16;
+                ctx.font = `bold ${subFontSize}px Poppins, sans-serif`;
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.fillText(`Kasus ${cases[i].id}`, radius - 30, -15);
+                
+                ctx.restore();
+            }
+        }
+
+        function populateList() {
+            caseListEl.innerHTML = '';
+            
+            if(cases.length === 0) {
+                 caseListEl.innerHTML = '<li class="text-center text-gray-300 italic py-4">Semua kasus telah diselesaikan!</li>';
+                 caseCounter.textContent = '(0 tersisa)';
+                 spinBtn.classList.add('disabled-btn');
+                 spinText.textContent = "HABIS";
+                 return;
+            }
+
+            caseCounter.textContent = `(${cases.length} tersisa)`;
+            
+            cases.forEach(c => {
+                const li = document.createElement('li');
+                li.className = 'flex items-start gap-3 bg-white/5 p-3 rounded-lg hover:bg-white/10 transition-colors';
+                li.innerHTML = `
+                    <span class="w-5 h-5 mt-0.5 rounded-full inline-block flex-shrink-0 shadow-inner" style="background-color: ${c.color}"></span>
+                    <span>${c.title}</span>
+                `;
+                caseListEl.appendChild(li);
+            });
+        }
+
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const mainContainer = document.documentElement; 
+
+        fullscreenBtn.addEventListener('click', toggleFullScreen);
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                if (mainContainer.requestFullscreen) {
+                    mainContainer.requestFullscreen();
+                } else if (mainContainer.mozRequestFullScreen) {
+                    mainContainer.mozRequestFullScreen();
+                } else if (mainContainer.webkitRequestFullscreen) { 
+                    mainContainer.webkitRequestFullscreen();
+                } else if (mainContainer.msRequestFullscreen) { 
+                    mainContainer.msRequestFullscreen();
+                }
+                fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i> <span class="hidden sm:inline">Keluar</span>';
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { 
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { 
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { 
+                    document.msExitFullscreen();
+                }
+                fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i> <span class="hidden sm:inline">Layar Penuh</span>';
+            }
+        }
+
+        document.addEventListener('fullscreenchange', (event) => {
+            if (!document.fullscreenElement) {
+                fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i> <span class="hidden sm:inline">Layar Penuh</span>';
+            }
+        });
+
+        function playSpinSound() {
+            let duration = 4000; 
+            let elapsed = 0;
+            let currentInterval = 40; 
+
+            function scheduleTick() {
+                if (!isSpinning) return;
+                
+                playTickSound();
+                
+                elapsed += currentInterval;
+                currentInterval = currentInterval * 1.07; 
+
+                if (elapsed < duration) {
+                    setTimeout(scheduleTick, currentInterval);
+                }
+            }
+            scheduleTick();
+        }
+
+        function playWinSound() {
+            try {
+                const ctx = getAudioContext();
+                const notes = [523.25, 659.25, 783.99, 1046.50]; 
+                
+                notes.forEach((freq, index) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    
+                    const startTime = ctx.currentTime + (index * 0.1);
+                    gain.gain.setValueAtTime(0.18, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.35);
+                });
+            } catch (e) {
+                console.warn('Win sound failed:', e);
+            }
+        }
+
+        async function spin() {
+            if (isSpinning || cases.length === 0) return;
+            isSpinning = true;
+            
+            // Matikan transisi sementara jika sedang reset posisi
+            canvas.style.transition = 'transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)';
+
+            const spins = Math.floor(Math.random() * 5) + 5; 
+            const randomDegree = Math.floor(Math.random() * 360);
+            const totalRotation = (spins * 360) + randomDegree;
+            
+            currentRotation += totalRotation;
+            
+            canvas.style.transform = `rotate(${currentRotation}deg)`;
+            
+            playSpinSound();
+            
+            setTimeout(() => {
+                isSpinning = false;
+                determineResult();
+                playWinSound(); 
+            }, 4000);
+        }
+
+        function determineResult() {
+            const numSegments = cases.length;
+            const segmentAngle = 360 / numSegments;
+            
+            const actualRotation = currentRotation % 360;
+            let pointerAngle = (360 - actualRotation) % 360;
+            
+            lastWinningIndex = Math.floor(pointerAngle / segmentAngle);
+            
+            showResult(cases[lastWinningIndex]);
+            fireConfetti();
+        }
+
+        const modal = document.getElementById('result-modal');
+        function showResult(winningCase) {
+            document.getElementById('result-title').textContent = `${winningCase.id}. ${winningCase.title}`;
+            document.getElementById('result-desc').textContent = winningCase.desc;
+            
+            document.querySelector('.bg-blue-50').style.borderColor = winningCase.color;
+            document.getElementById('result-title').style.color = winningCase.color;
+            
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+            
+            // Logika untuk menghapus kasus yang sudah terpilih
+            if (lastWinningIndex !== -1) {
+                cases.splice(lastWinningIndex, 1); // Hapus elemen dari array
+                
+                // Reset rotasi ke 0 secara instan (tanpa animasi) agar roda tidak terlihat berputar mundur
+                canvas.style.transition = 'none';
+                currentRotation = 0;
+                canvas.style.transform = `rotate(0deg)`;
+                
+                // Paksa reflow agar perubahan 'transition: none' diterapkan sebelum animasi dipulihkan nanti
+                void canvas.offsetWidth; 
+                
+                // Gambar ulang roda dengan potongan baru
+                drawWheel();
+                
+                // Update daftar di panel
+                populateList();
+                
+                lastWinningIndex = -1; // Reset index
+            }
+        }
+
+        function fireConfetti() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+
+        document.getElementById('spin-btn').addEventListener('click', spin);
+        document.getElementById('close-modal').addEventListener('click', closeModal);
+        document.getElementById('btn-next').addEventListener('click', closeModal);
+        
+        document.addEventListener('keydown', (e) => {
+            if ((e.code === 'Space' || e.code === 'Enter') && !isSpinning && modal.style.display !== 'flex' && cases.length > 0) {
+                spin();
+            }
+        });
+
+        drawWheel();
+        populateList();
+
+    </script>
+</body>
+</html>
